@@ -54,8 +54,7 @@ const fetchToOpenAI = async (q, maxRetries = 5) => {
   while (retryCount < maxRetries && hasError) {
     try {
       // Construct the request body for company list generation
-      const message = `My CV is delimated by "//" and query is delimated by "&&". Answer the query by using the context fron my CV\n. //${about_you}// \n &&${q}&&`;
-      console.log(message);
+      const message = `My CV is delimited by "//" and the query is delimited by "&&". Provide relevant information based on my CV context. //${about_you}// &&${q}&&`;
       const response = await fetch(
         'https://api.openai.com/v1/chat/completions',
         {
@@ -73,7 +72,6 @@ const fetchToOpenAI = async (q, maxRetries = 5) => {
       );
 
       const data = await response.json();
-      console.log('answer', data.choices[0].message.content);
       await timer(2000);
       responseData = data.choices[0].message.content;
       hasError = false; // No error, break out of the loop
@@ -103,21 +101,21 @@ const checkJob = (job) => {
 const SetRadiocAndCheckboxElement = async (wrapper) => {
   try {
     const elements = wrapper.querySelectorAll('fieldset>div');
-    const avaible_values = [];
+    const available_values = [];
 
     elements.forEach((element, index) => {
-      avaible_values.push(element.innerText);
+      available_values.push(element.innerText);
     });
 
     const radioFormLegend = wrapper.querySelector(
       'fieldset>legend>span>span'
     ).innerText;
     const radioOpenAiQuery = `
-                ${radioFormLegend}\n
-                Followings are available answers.
-                ${JSON.stringify(avaible_values)}
-                Please specify the index of the correct answer in this array. No need long answer, just index!!!
-            `;
+        ${radioFormLegend}\n
+        Available options: ${JSON.stringify(available_values)}.
+        Specify the index of the correct answer in this array. Use the index only for your response.
+        `;
+
     let answer = await fetchToOpenAI(radioOpenAiQuery);
 
     answer = isNumeric(answer) ? parseInt(answer) : 0;
@@ -163,7 +161,6 @@ const InsertData = async () => {
     const formelements = JobApplyModal.querySelectorAll(
       '.jobs-easy-apply-form-element'
     );
-    console.log('Ider hu apun');
     for (let index = 0; index < formelements.length; index++) {
       const item = formelements[index];
       const inputElement =
@@ -175,7 +172,6 @@ const InsertData = async () => {
         item.innerHTML.includes('radio') ||
         item.innerHTML.includes('checkbox')
       ) {
-        console.log('Going to check radio');
         await SetRadiocAndCheckboxElement(item);
         await timer(2000);
         continue;
@@ -186,42 +182,39 @@ const InsertData = async () => {
         current_page.includes('address') ||
         current_page.includes('Resume')
       ) {
-        console.log('Here at contact, address and resume');
         inputElement.value = decideInsertedVal(item);
       } else {
         let openAIQuery = item.querySelector('label').innerText;
         if (item.innerHTML.includes('numeric')) {
           if (item.innerHTML.includes('numeric')) {
             openAIQuery +=
-              '\n Answer only a single JSON object with the format {answer: x}\n' +
-              ' x can be only an integer and never a string or any other type.\n' +
-              ' If you cannot draft a response in the said format just send {answer: 4};';
+              '\nProvide a numerical answer in the format { "answer": x }.\n' +
+              'If the answer is not clear or cannot be determined, return { "answer": 1 }.\n' +
+              'Avoid any string responses; only numeric values are expected in the context of the CV query.';
           }
         }
 
         if (inputElement.innerHTML.includes('<option')) {
-          console.log('Here at options');
-          const avaible_values = [];
+          const available_values = [];
           const options = inputElement.querySelectorAll('option');
           options.forEach((item, index) => {
-            avaible_values.push(item.innerText);
+            available_values.push(item.innerText);
           });
-          openAIQuery += `Available answers are ${JSON.stringify(
-            avaible_values
-          )}. You Must choose exact one of these. Answer needs to be case sensetive. Please do not contain any extra charactor (even .) in the answer. Exact one of available answers.`;
+          openAIQuery +=
+            `Choose one from the following options: ${JSON.stringify(
+              available_values
+            )}.` +
+            `Ensure your answer is case-sensitive and matches exactly one of the available values.` +
+            `Avoid including any extra characters (even '.') in your response.` +
+            `In case you are not able to determine, return the first value`;
         }
 
         let answer = await fetchToOpenAI(openAIQuery);
         await timer(100);
 
         if (item.innerHTML.includes('numeric')) {
-          console.log(answer);
-          console.log(JSON.parse(answer));
-          console.log('Yelo');
           if (isJSON(answer)) {
-            console.log('we are json', answer);
             answer = JSON.parse(answer).answer;
-            console.log(answer);
             inputElement.value = answer;
           } else {
             answer = 4;
@@ -254,14 +247,11 @@ const InsertData = async () => {
 
       await timer(2000);
     }
-    console.log('Ider hu apun2');
     NextButton = JobApplyModal.querySelector(
       'button[data-easy-apply-next-button]'
     );
     NextButton?.click();
-    console.log('Ider hu apun3');
     // check if this is last page and if so, click the review button
-    console.log('Review aagya');
     const ReviewButton = document.querySelector(
       "button[aria-label='Review your application']"
     );
@@ -269,7 +259,6 @@ const InsertData = async () => {
       checkLastStep = true;
       ReviewButton?.click();
     }
-    console.log('Submit aagya');
     const submitButton = document.querySelector(
       "button[aria-label='Submit application']"
     );
@@ -279,7 +268,6 @@ const InsertData = async () => {
     }
   } catch (e) {
     console.log(e);
-    console.log('Inpur mewin error?');
     hasError = true;
   }
 };
@@ -303,12 +291,10 @@ const cancelCurrentApply = async () => {
 const identifyPage = async () => {
   try {
     const header = JobApplyModal.querySelector('div h3');
-    console.log('Identifying page', header.innerHTML);
     if (
       header.innerHTML.includes('identification') ||
       current_page == header.innerText
     ) {
-      console.log('error occurs');
       hasError = true;
       await cancelCurrentApply();
       return;
@@ -323,7 +309,6 @@ const identifyPage = async () => {
 const AttachNormalElementsToVariables = async () => {
   // get global elements
   JobApplyModal = document.querySelector('.jobs-easy-apply-modal');
-  // console.log(JobApplyModal.innerHTML);
 };
 
 const ApplyJob = async () => {
@@ -332,12 +317,10 @@ const ApplyJob = async () => {
   ApplyButton = JobDetailPanel.querySelector('.jobs-apply-button');
 
   if (ApplyButton) {
-    console.log('here at apply job');
     current_page = 'before';
     checkLastStep = false;
     hasError = false;
     ApplyButton.click();
-    console.log('Apply button is clicked');
     await timer(2000);
     await AttachNormalElementsToVariables();
 
@@ -351,7 +334,6 @@ const ApplyJob = async () => {
         !JobApplyModal.querySelector('div h3').innerText.includes('Review') &&
         current_page != 'Review'
       ) {
-        console.log('Has error 1');
         await cancelCurrentApply();
         return;
       }
@@ -368,8 +350,6 @@ const ApplyJob = async () => {
       );
       disMissButton?.click();
     } else {
-      console.log('Has error 2');
-
       await cancelCurrentApply();
     }
   }
@@ -404,9 +384,7 @@ chrome.runtime.onMessage.addListener(async function (
 ) {
   switch (request.type) {
     case 'StartApplyContent':
-      console.log('hMein hun yhan');
       user_data = request.data;
-      console.log(user_data);
       cover_letter = user_data.cover_letter;
       about_you = user_data.about_you;
       let page_index = 1;
