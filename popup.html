@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Screen Capture</title>
+
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+
+  <body>
+    <!-- Heading -->
+    <h1>Linkedin Job Auto Apply</h1>
+
+    <div class="user-input">
+      <div class="contact-info">
+        <input type="text" id="fname" placeholder="*First Name" required />
+        <input type="text" id="lname" placeholder="*Last Name" required />
+        <input
+          type="text"
+          id="country_code"
+          placeholder="*Country Code(United States (+1))"
+          required
+        />
+        <input
+          type="text"
+          id="phone"
+          placeholder="Mobile Phone Number"
+          required
+        />
+        <input type="text" id="email" placeholder="*Email Address" required />
+        <input
+          type="text"
+          id="gpt_key"
+          placeholder="*ChatGPT API Key"
+          required
+        />
+        <input type="text" id="street" placeholder="Street" />
+        <input type="text" id="city" placeholder="City" />
+        <input
+          type="text"
+          id="postal_code"
+          placeholder="*Postal Code"
+          required
+        />
+        <input type="text" id="state" placeholder="State" />
+        <input type="file" id="cvInput" accept=".pdf" required />
+        <div id="output"></div>
+      </div>
+      <textarea class="cover-letter" placeholder="Cover Letter"></textarea>
+      <!-- Save Button -->
+      <button id="save">Save</button>
+    </div>
+
+    <div class="main-window">
+      <!-- Setting Button -->
+      <button id="setting">Setting</button>
+      <!-- Start Button -->
+      <button id="start">Start</button>
+      <!-- Stop Button -->
+      <button id="stop">Stop</button>
+    </div>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
