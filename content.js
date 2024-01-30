@@ -14,6 +14,7 @@ let ApplyButton, NextButton;
 let checkLastStep = false;
 let hasError = false;
 let current_page = 'before';
+let jobDescription = '';
 
 const decideInsertedVal = (ele) => {
   if (ele.innerText.includes('First name')) {
@@ -22,6 +23,8 @@ const decideInsertedVal = (ele) => {
     return user_data['lname'];
   } else if (ele.innerText.includes('country code')) {
     return user_data['country_code'];
+  } else if (ele.innerText.includes('country')) {
+    return user_data['country'];
   } else if (
     ele.innerText.includes('phone number') ||
     ele.innerText.includes('Phone')
@@ -54,7 +57,8 @@ const fetchToOpenAI = async (q, maxRetries = 5) => {
   while (retryCount < maxRetries && hasError) {
     try {
       // Construct the request body for company list generation
-      const message = `My CV is delimited by "//" and the query is delimited by "&&". Provide relevant information based on my CV context. //${about_you}// &&${q}&&`;
+      const message = `My CV is delimited by "//", the Job description is delimated by "@@" and the query is delimited by "&&". Provide relevant information based on my CV context. If there us not enough context in my CV about the query, give me the most suitable answer, so I can land the interview. But make sure to follow the instructions in the query for suiitable answer format. \n   //${about_you}// \n @@${jobDescription}@@ \n &&${q}&&`;
+      console.log(message);
       const response = await fetch(
         'https://api.openai.com/v1/chat/completions',
         {
@@ -74,6 +78,7 @@ const fetchToOpenAI = async (q, maxRetries = 5) => {
       const data = await response.json();
       await timer(2000);
       responseData = data.choices[0].message.content;
+      console.log(responseData);
       hasError = false; // No error, break out of the loop
     } catch (e) {
       console.error('Error occurred:', e);
@@ -113,10 +118,11 @@ const SetRadiocAndCheckboxElement = async (wrapper) => {
     const radioOpenAiQuery = `
         ${radioFormLegend}\n
         Available options: ${JSON.stringify(available_values)}.
-        Specify the index of the correct answer in this array. Use the index only for your response.
-        `;
+        Select one of the available options and return only its index from the cotext provided to you. The indexes of available options start from 0.`;
 
+    console.log(radioOpenAiQuery);
     let answer = await fetchToOpenAI(radioOpenAiQuery);
+    console.log(answer);
 
     answer = isNumeric(answer) ? parseInt(answer) : 0;
 
@@ -141,6 +147,13 @@ const OpenJob = async (job) => {
 
   await timer(2000);
   JobDetailPanel = document.querySelector('.jobs-search__job-details--wrapper');
+  var jobDetailsDiv = document.querySelector(
+    '.jobs-box__html-content.jobs-description-content__text.t-14.t-normal'
+  );
+
+  if (jobDetailsDiv) {
+    jobDescription = jobDetailsDiv.textContent;
+  }
 
   JobDetailPanel.innerHTML.includes('Easy Apply')
     ? await timer(2000)
@@ -189,7 +202,7 @@ const InsertData = async () => {
           if (item.innerHTML.includes('numeric')) {
             openAIQuery +=
               '\nProvide a numerical answer in the format { "answer": x }.\n' +
-              'If the answer is not clear or cannot be determined, return { "answer": 1 }.\n' +
+              'If the answer is not clear or cannot be determined, return an answer which is close to job description in the same format of { "answer": x }. If both Job description and CV dont have the context, return {"answer" : 1}\n' +
               'Avoid any string responses; only numeric values are expected in the context of the CV query.';
           }
         }
