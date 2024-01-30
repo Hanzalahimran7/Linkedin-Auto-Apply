@@ -7,6 +7,12 @@ const settingButton = document.getElementById('setting');
 const saveButton = document.getElementById('save');
 const cvInput = document.getElementById('cvInput');
 const outputDiv = document.getElementById('output');
+const country = document.getElementById('country');
+const state = document.getElementById('state');
+const city = document.getElementById('city');
+
+let country_selected = '';
+let state_selected = '';
 
 import {
   getDocument,
@@ -16,15 +22,16 @@ GlobalWorkerOptions.workerSrc = './pdfjs-4.0.379-dist/build/pdf.worker.mjs';
 
 let user_data = {
   fname: '',
+  country: '',
   lname: '',
   country_code: '',
   phone: '',
   gpt_key: '',
   email: '',
   street: '',
+  state: '',
   city: '',
   postal_code: '',
-  state: '',
   full_name: '',
   cover_letter: '',
   about_you: '',
@@ -33,14 +40,15 @@ let user_data = {
 const insertDataFromBackground = (data) => {
   document.querySelector('#fname').value = data.fname;
   document.querySelector('#lname').value = data.lname;
-  document.querySelector('#country_code').value = data.country_code;
+  document.querySelector('#country_code').value =
+    data.country_code.match(/\d+/)[0];
   document.querySelector('#gpt_key').value = data.gpt_key;
   document.querySelector('#phone').value = data.phone;
   document.querySelector('#email').value = data.email;
   document.querySelector('#street').value = data.street;
-  document.querySelector('#city').value = data.city;
+  // document.querySelector('#city').value = data.city;
   document.querySelector('#postal_code').value = data.postal_code;
-  document.querySelector('#state').value = data.state;
+  // document.querySelector('#state').value = data.state;
   document.querySelector('.cover-letter').value = data.cover_letter;
 };
 
@@ -82,41 +90,60 @@ const extractDataFromInput = async () => {
   user_data.lname = document.querySelector('#lname').value;
   user_data.gpt_key = document.querySelector('#gpt_key').value;
   user_data.full_name = user_data.fname + ' ' + user_data.lname;
-  user_data.country_code = document.querySelector('#country_code').value;
+  const selectedCode = document.querySelector('#country_code');
+  const countryCodeText = selectedCode.options[selectedCode.selectedIndex].text;
+  user_data.country_code = countryCodeText.replace(/(.+) (\+\d+)/, '$1 ($2)');
   user_data.phone = document.querySelector('#phone').value;
   user_data.email = document.querySelector('#email').value;
   user_data.street = document.querySelector('#street').value;
-  user_data.city = document.querySelector('#city').value;
+  const selectedCity = document.querySelector('#city');
+  user_data.city = selectedCity.options[selectedCity.selectedIndex].text;
   user_data.postal_code = document.querySelector('#postal_code').value;
-  user_data.state = document.querySelector('#state').value;
+  const selectedState = document.querySelector('#state');
+  user_data.state = selectedState.options[selectedState.selectedIndex].text;
+  const selectedCountry = document.querySelector('#country');
+  user_data.country =
+    selectedCountry.options[selectedCountry.selectedIndex].text;
+
   user_data.cover_letter = document.querySelector('.cover-letter').value;
-  // localStorage.setItem('fname', user_data.fname);
-  // localStorage.setItem('lname', user_data.lname);
-  // localStorage.setItem('country_code', user_data.country_code);
-  // localStorage.setItem('phone', user_data.phone);
-  // localStorage.setItem('email', user_data.email);
-  // localStorage.setItem('street', user_data.street);
-  // localStorage.setItem('city', user_data.city);
-  // localStorage.setItem('postal_code', user_data.postal_code);
   const formFields = [
     'fname',
     'lname',
-    'country_code',
     'phone',
     'gpt_key',
     'email',
     'street',
-    'city',
     'postal_code',
+    'country',
+    'city',
     'state',
   ];
   formFields.forEach((field) => {
-    window.localStorage.setItem(field, document.getElementById(field).value);
+    window.localStorage.setItem(field, user_data[field]);
   });
   window.localStorage.setItem(
     'cover_letter',
     document.querySelector('.cover-letter').value
   );
+  window.localStorage.setItem(
+    'countryCodeValue',
+    document.getElementById('country_code').value
+  );
+
+  const options = ['country', 'state', 'city'];
+  options.forEach((item) => {
+    const dropdown = document.getElementById(item);
+    const options = Array.from(dropdown.options);
+    const optionData = {
+      options: options.map((option) => ({
+        text: option.text,
+        value: option.value,
+      })),
+      selectedIndex: dropdown.selectedIndex,
+    };
+    localStorage.setItem(`${item}-values`, JSON.stringify(optionData));
+  });
+
   console.log(localStorage);
   const file = cvInput.files[0];
   if (file) {
@@ -149,6 +176,18 @@ saveButton.addEventListener('click', async () => {
   }
 });
 
+country.addEventListener('change', () => populateStates());
+state.addEventListener('change', () => populateCities());
+
+// function fetchLocationIQData(query, callback) {
+//   const apiUrl = `https://us.locationiq.com/v1/search.php?q=Canada&format=json&key=${geoCodingAPI}`;
+
+//   fetch(apiUrl)
+//     .then((response) => response.json())
+//     .then((data) => callback(data))
+//     .catch((error) => console.error('Error fetching LocationIQ data:', error));
+// }
+
 settingButton.addEventListener('click', async () => {
   try {
     userInput.style.display = 'block';
@@ -168,7 +207,6 @@ window.addEventListener('load', () => {
     const formFields = [
       'fname',
       'lname',
-      'country_code',
       'phone',
       'gpt_key',
       'email',
@@ -183,18 +221,48 @@ window.addEventListener('load', () => {
         user_data[field] = value;
       }
     });
-    // Retrieve cover letter separately
+    user_data['country_code'] = window.localStorage.getItem('countryCodeValue');
+    const countries = window.localStorage.getItem('country-values');
+    const states = window.localStorage.getItem('state-values');
+    const cities = window.localStorage.getItem('city-values');
+
+    if (countries && states && cities) {
+      const data = [countries, states, cities];
+      const fields = ['country', 'state', 'city'];
+      for (let i = 0; i < 3; i++) {
+        const storedOptions = JSON.parse(data[i]);
+        const dropdown = document.getElementById(fields[i]);
+        storedOptions.options.forEach((optionData, index) => {
+          if (index !== 0) {
+            const option = document.createElement('option');
+            option.text = optionData.text;
+            option.value = optionData.value;
+            dropdown.add(option);
+          }
+          if (index === storedOptions.selectedIndex) {
+            dropdown.disabled = false;
+            dropdown.options[index].selected = true;
+            console.log(dropdown.options[index].selected);
+          }
+        });
+
+        console.log(storedOptions.selectedIndex);
+        // dropdown.selectedIndex = storedOptions.selectedIndex;
+      }
+    } else {
+      populateCountries();
+    }
+    console.log('Got data', user_data);
+
     const coverLetterValue = window.localStorage.getItem('cover_letter');
     if (coverLetterValue) {
       document.querySelector('.cover-letter').value = coverLetterValue;
     }
   } catch (error) {
-    // Handle potential errors gracefully
     console.error('Error retrieving data from local storage:', error);
     // Optionally clear local storage to avoid inconsistencies
     window.localStorage.clear();
   }
-  console.log('Got data', user_data);
 });
 
 // const onButtonClick = (event) => {
@@ -243,3 +311,99 @@ window.addEventListener('load', () => {
 // chrome.runtime.sendMessage({
 //   type: 'checkProgress',
 // });
+
+const geonamesUsername = 'alexscript';
+
+function fetchGeoNamesData(endpoint, query, callback) {
+  const apiUrl = `http://api.geonames.org/${endpoint}?${query}&username=${geonamesUsername}`;
+  fetch(apiUrl)
+    .then((response) => response.json()) // This returns a Promise
+    .then((data) => callback(data))
+    .catch((error) => console.error('Error fetching GeoNames data:', error));
+}
+
+function populateDropdown(dropdown, data) {
+  console.log('here at the dropdown');
+  if (document.getElementById('country') === dropdown) {
+    dropdown.innerHTML =
+      '<option value="" selected disabled>Select Country</option>';
+  } else if (document.getElementById('state') === dropdown) {
+    dropdown.innerHTML =
+      '<option value="" selected disabled>Select State</option>';
+  } else if (document.getElementById('city') === dropdown) {
+    dropdown.innerHTML =
+      '<option value="" selected disabled>Select City</option>';
+  }
+  data.forEach((item) => {
+    const option = document.createElement('option');
+    option.value = item.geonameId;
+    if (document.getElementById('country') === dropdown) {
+      option.text = item.countryName;
+    } else if (document.getElementById('state') === dropdown) {
+      option.text = item.adminName1;
+    } else if (document.getElementById('city') === dropdown) {
+      option.text = item.toponymName;
+    }
+
+    dropdown.add(option);
+  });
+}
+
+function populateCountries() {
+  console.log('Fretaaa');
+  fetchGeoNamesData('countryInfoJSON', '', (data) => {
+    console.log(data);
+    const countryDropdown = document.getElementById('country');
+    populateDropdown(countryDropdown, data.geonames);
+    populateStates(); // Automatically populate states after loading countries
+  });
+}
+
+function populateStates() {
+  const countryDropdown = document.getElementById('country');
+  const stateDropdown = document.getElementById('state');
+  const cityDropdown = document.getElementById('city');
+
+  // Disable state and city dropdowns
+  stateDropdown.disabled = true;
+  cityDropdown.disabled = true;
+
+  const selectedCountry = countryDropdown.value;
+
+  if (selectedCountry) {
+    const query = `geonameId=${selectedCountry}`;
+    fetchGeoNamesData('childrenJSON', query, (data) => {
+      populateDropdown(stateDropdown, data.geonames);
+      // Enable the state dropdown
+      stateDropdown.disabled = false;
+      populateCities(); // Automatically populate cities after loading states
+    });
+  } else {
+    stateDropdown.innerHTML =
+      '<option value="" selected disabled>Select State</option>';
+    populateCities(); // Clear cities dropdown if no state is selected
+  }
+}
+
+function populateCities() {
+  const stateDropdown = document.getElementById('state');
+  const cityDropdown = document.getElementById('city');
+  const selectedState = stateDropdown.value;
+
+  // Disable city dropdown
+  cityDropdown.disabled = true;
+
+  if (selectedState) {
+    const query = `geonameId=${selectedState}`;
+    fetchGeoNamesData('childrenJSON', query, (data) => {
+      populateDropdown(cityDropdown, data.geonames);
+      // Enable the city dropdown
+      cityDropdown.disabled = false;
+    });
+  } else {
+    cityDropdown.innerHTML =
+      '<option value="" selected disabled>Select City</option>';
+  }
+}
+
+// Initialize the country dropdown

@@ -3,7 +3,7 @@
   "name": "Linked Job Auto Apply",
   "version": "1.0",
   "description": "Extension for applying job in Linkedin",
-  "host_permissions": ["https://www.linkedin.com/"],
+  "host_permissions": ["https://www.linkedin.com/", "http://api.geonames.org/"],
   "icons": {
     "16": "icon.png",
     "32": "icon.png",
