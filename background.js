@@ -14,6 +14,7 @@ let user_data = {
   full_name: '',
   cover_letter: '',
   about_you: '',
+  country: '',
 };
 
 let isProgress = false;
@@ -58,6 +59,7 @@ chrome.runtime.onMessage.addListener(async function (
       break;
     case 'SaveData':
       user_data = request.user_data;
+      console.log(user_data);
       break;
     default:
       break;

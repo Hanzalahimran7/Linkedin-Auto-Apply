@@ -11,9 +11,6 @@ const country = document.getElementById('country');
 const state = document.getElementById('state');
 const city = document.getElementById('city');
 
-let country_selected = '';
-let state_selected = '';
-
 import {
   getDocument,
   GlobalWorkerOptions,
@@ -170,7 +167,6 @@ saveButton.addEventListener('click', async () => {
     saveButton.style.display = 'none';
     mainWindow.style.display = 'block';
     chrome.runtime.sendMessage({ type: 'SaveData', user_data: user_data });
-    console.log(user_data);
   } catch (error) {
     console.log(error);
   }
@@ -193,7 +189,6 @@ settingButton.addEventListener('click', async () => {
     userInput.style.display = 'block';
     saveButton.style.display = 'block';
     mainWindow.style.display = 'none';
-    console.log('Setting', user_data);
     insertDataFromBackground(user_data);
   } catch (error) {
     console.log(error);
@@ -201,7 +196,6 @@ settingButton.addEventListener('click', async () => {
 });
 
 window.addEventListener('load', () => {
-  console.log('loading');
   try {
     // Retrieve all form fields from local storage
     const formFields = [
@@ -242,17 +236,14 @@ window.addEventListener('load', () => {
           if (index === storedOptions.selectedIndex) {
             dropdown.disabled = false;
             dropdown.options[index].selected = true;
-            console.log(dropdown.options[index].selected);
           }
         });
 
-        console.log(storedOptions.selectedIndex);
         // dropdown.selectedIndex = storedOptions.selectedIndex;
       }
     } else {
       populateCountries();
     }
-    console.log('Got data', user_data);
 
     const coverLetterValue = window.localStorage.getItem('cover_letter');
     if (coverLetterValue) {
@@ -323,7 +314,6 @@ function fetchGeoNamesData(endpoint, query, callback) {
 }
 
 function populateDropdown(dropdown, data) {
-  console.log('here at the dropdown');
   if (document.getElementById('country') === dropdown) {
     dropdown.innerHTML =
       '<option value="" selected disabled>Select Country</option>';
@@ -350,9 +340,7 @@ function populateDropdown(dropdown, data) {
 }
 
 function populateCountries() {
-  console.log('Fretaaa');
   fetchGeoNamesData('countryInfoJSON', '', (data) => {
-    console.log(data);
     const countryDropdown = document.getElementById('country');
     populateDropdown(countryDropdown, data.geonames);
     populateStates(); // Automatically populate states after loading countries

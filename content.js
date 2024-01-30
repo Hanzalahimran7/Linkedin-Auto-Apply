@@ -22,6 +22,8 @@ const decideInsertedVal = (ele) => {
     return user_data['lname'];
   } else if (ele.innerText.includes('country code')) {
     return user_data['country_code'];
+  } else if (ele.innerText.includes('country')) {
+    return user_data['country'];
   } else if (
     ele.innerText.includes('phone number') ||
     ele.innerText.includes('Phone')
@@ -113,10 +115,11 @@ const SetRadiocAndCheckboxElement = async (wrapper) => {
     const radioOpenAiQuery = `
         ${radioFormLegend}\n
         Available options: ${JSON.stringify(available_values)}.
-        Specify the index of the correct answer in this array. Use the index only for your response.
-        `;
+        Select one of the available options and return only its index from the cotext provided to you. The indexes of available options start from 0.`;
 
+    console.log(radioOpenAiQuery);
     let answer = await fetchToOpenAI(radioOpenAiQuery);
+    console.log(answer);
 
     answer = isNumeric(answer) ? parseInt(answer) : 0;
 
